@@ -1,0 +1,64 @@
+# CrazyMine Size Konfiguration
+
+# Ist das System auf diesem Server aktiv?
+enabled: true
+
+# Erfordern die Presets (klein, gross usw.) extra LuckPerms-Permissions?
+# Falls false, kann jeder Spieler mit crazymine.size.use alle Presets wählen.
+require-permission: true
+
+# Mindest- und Maximalgröße
+min-scale: 0.2
+max-scale: 2.5
+
+# Server-weite Standard-Größe (Standard: 1.0)
+# Wenn force-server-scale true ist, haben alle Spieler ausnahmslos diese Größe.
+server-scale: 1.0
+force-server-scale: false
+
+# Speichert die gewählte Größe des Spielers persistent (auch über Reconnects hinweg)
+persist-player-size: true
+
+# Presets für das GUI und den Befehl
+presets:
+  klein:
+    scale: 0.5
+    title: "<gradient:#38bdf8:#818cf8><bold>Klein</bold></gradient>"
+    description: "<gray>Schrumpfe auf halbe Größe (0.5x)</gray>"
+    permission: "crazymine.size.small"
+    material: "BABY_TURTLE_SPAWN_EGG"
+    slot: 11
+  normal:
+    scale: 1.0
+    title: "<green><bold>Normal</bold></green>"
+    description: "<gray>Standard-Größe eines Spielers (1.0x)</gray>"
+    permission: "crazymine.size.normal"
+    material: "PLAYER_HEAD"
+    slot: 13
+  etwasgross:
+    scale: 1.3
+    title: "<gradient:#f59e0b:#ef4444><bold>Etwas größer</bold></gradient>"
+    description: "<gray>Werde ein Stückchen größer (1.3x)</gray>"
+    permission: "crazymine.size.large"
+    material: "GOLDEN_APPLE"
+    slot: 15
+  gross:
+    scale: 1.6
+    title: "<gradient:#dc2626:#7c2d12><bold>Groß</bold></gradient>"
+    description: "<gray>Wachse zu einem echten Riesen heran (1.6x)</gray>"
+    permission: "crazymine.size.large"
+    material: "IRON_GOLEM_SPAWN_EGG"
+    slot: 22
+
+# Nachrichten (MiniMessage)
+messages:
+  prefix: "<gradient:#ff7a18:#ffd166><bold>CrazyMine</bold></gradient> <dark_gray>»</dark_gray> "
+  size-set: "<gray>Deine Größe wurde auf <yellow><size>x</yellow> gesetzt!</gray>"
+  size-reset: "<gray>Deine Größe wurde auf <green>Normal (1.0x)</green> zurückgesetzt.</gray>"
+  size-target: "<gray>Die Größe von <yellow><player></yellow> wurde auf <yellow><size>x</yellow> gesetzt.</gray>"
+  server-size-set: "<green>Die Server-Größe wurde für alle Spieler auf <yellow><size>x</yellow> gesetzt!</green>"
+  no-permission: "<red>Dazu hast du keine Berechtigung!</red>"
+  invalid-size: "<red>Ungültige Größe! Erlaubt: zwischen <yellow><min>x</yellow> und <yellow><max>x</yellow>.</red>"
+  player-not-found: "<red>Spieler wurde nicht gefunden.</red>"
+  reloaded: "<green>Konfiguration erfolgreich neu geladen!</green>"
+  disabled: "<red>Das Größen-System ist auf diesem Server deaktiviert.</red>"
