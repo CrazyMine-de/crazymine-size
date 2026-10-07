@@ -1,25 +1,62 @@
-# CrazyMine Size Konfiguration
+# ==============================================================================
+# CrazyMine Size — Konfiguration
+# GitHub: https://github.com/CrazyMine-de/crazymine-size
+# ==============================================================================
 
-# Ist das System auf diesem Server aktiv?
+# Ist das Größen-System aktiv?
 enabled: true
 
 # Erfordern die Presets (klein, gross usw.) extra LuckPerms-Permissions?
-# Falls false, kann jeder Spieler mit crazymine.size.use alle Presets wählen.
+# Falls false, kann jeder Spieler mit crazymine.size.use alle Presets frei wählen.
 require-permission: true
 
-# Mindest- und Maximalgröße
+# Mindest- und Maximalgröße (Standard: 0.2x bis 2.5x)
+# Spieler mit der Permission 'crazymine.size.bypass' können diesen Rahmen überschreiten.
 min-scale: 0.2
 max-scale: 2.5
 
 # Server-weite Standard-Größe (Standard: 1.0)
-# Wenn force-server-scale true ist, haben alle Spieler ausnahmslos diese Größe.
+# Wenn force-server-scale true ist, haben alle Spieler beim Beitreten fest diese Größe.
 server-scale: 1.0
 force-server-scale: false
 
-# Speichert die gewählte Größe des Spielers persistent (auch über Reconnects hinweg)
-persist-player-size: true
+# Speicherung der Spielergröße (über Reconnects und Server-Neustarts hinweg)
+storage:
+  persist: true
+  # Optionaler benutzerdefinierter Pfad (z.B. für Proxy-/Netzwerk-Server, z.B. /opt/nimbus/shared/sizes/sizes.yml).
+  # Leer lassen (""), um die Standarddatei im Plugin-Ordner (plugins/CrazyMineSize/sizes.yml) zu nutzen.
+  custom-file-path: ""
 
-# Presets für das GUI und den Befehl
+# Grafische Benutzeroberfläche (GUI)
+gui:
+  # Inventargröße (muss ein Vielfaches von 9 sein: 9, 18, 27, 36, 45, 54)
+  size: 27
+  filler:
+    enabled: true
+    material: "GRAY_STAINED_GLASS_PANE"
+  info-item:
+    enabled: true
+    slot: 4
+    material: "COMPASS"
+  reset-item:
+    enabled: true
+    slot: 26
+    material: "REDSTONE"
+
+# Sound- und Partikeleffekte beim Ändern der Größe
+effects:
+  sounds:
+    enabled: true
+    change-scale: "ENTITY_PLAYER_LEVELUP"
+    gui-open: "BLOCK_ENCHANTMENT_TABLE_USE"
+    gui-denied: "ENTITY_VILLAGER_NO"
+  particles:
+    enabled: true
+    particle: "ENCHANT"
+    count: 25
+
+# Presets für das GUI und den Befehl (/size <name>)
+# Jeder Eintrag kann frei angepasst oder erweitert werden.
 presets:
   klein:
     scale: 0.5
@@ -49,16 +86,3 @@ presets:
     permission: "crazymine.size.large"
     material: "IRON_GOLEM_SPAWN_EGG"
     slot: 22
-
-# Nachrichten (MiniMessage)
-messages:
-  prefix: "<gradient:#ff7a18:#ffd166><bold>CrazyMine</bold></gradient> <dark_gray>»</dark_gray> "
-  size-set: "<gray>Deine Größe wurde auf <yellow><size>x</yellow> gesetzt!</gray>"
-  size-reset: "<gray>Deine Größe wurde auf <green>Normal (1.0x)</green> zurückgesetzt.</gray>"
-  size-target: "<gray>Die Größe von <yellow><player></yellow> wurde auf <yellow><size>x</yellow> gesetzt.</gray>"
-  server-size-set: "<green>Die Server-Größe wurde für alle Spieler auf <yellow><size>x</yellow> gesetzt!</green>"
-  no-permission: "<red>Dazu hast du keine Berechtigung!</red>"
-  invalid-size: "<red>Ungültige Größe! Erlaubt: zwischen <yellow><min>x</yellow> und <yellow><max>x</yellow>.</red>"
-  player-not-found: "<red>Spieler wurde nicht gefunden.</red>"
-  reloaded: "<green>Konfiguration erfolgreich neu geladen!</green>"
-  disabled: "<red>Das Größen-System ist auf diesem Server deaktiviert.</red>"

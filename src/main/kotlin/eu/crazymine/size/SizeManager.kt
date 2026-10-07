@@ -33,22 +33,64 @@ class SizeManager(private val plugin: SizePlugin) {
     var persistPlayerSize = true
         private set
 
+    // GUI settings
+    var guiSize = 27
+        private set
+    var guiFillerEnabled = true
+        private set
+    var guiFillerMaterial = Material.GRAY_STAINED_GLASS_PANE
+        private set
+    var guiInfoEnabled = true
+        private set
+    var guiInfoSlot = 4
+        private set
+    var guiInfoMaterial = Material.COMPASS
+        private set
+    var guiResetEnabled = true
+        private set
+    var guiResetSlot = 26
+        private set
+    var guiResetMaterial = Material.REDSTONE
+        private set
+
+    // Effects
+    var soundsEnabled = true
+        private set
+    var soundChangeScale = Sound.ENTITY_PLAYER_LEVELUP
+        private set
+    var soundGuiOpen = Sound.BLOCK_ENCHANTMENT_TABLE_USE
+        private set
+    var soundGuiDenied = Sound.ENTITY_VILLAGER_NO
+        private set
+    var particlesEnabled = true
+        private set
+    var particleType = Particle.ENCHANT
+        private set
+    var particleCount = 25
+        private set
+
     val presets = LinkedHashMap<String, SizePreset>()
-    private val messages = HashMap<String, String>()
+    private val messages = ConcurrentHashMap<String, String>()
+    private val messageLists = ConcurrentHashMap<String, List<String>>()
     private val playerSizes = ConcurrentHashMap<UUID, Double>()
     private val storageLock = Any()
 
-    private val storageFile: File by lazy {
-        val sharedDir = File("/opt/nimbus/shared/sizes")
-        if (sharedDir.exists() || sharedDir.mkdirs()) {
-            File(sharedDir, "sizes.yml")
-        } else {
-            File(plugin.dataFolder, "sizes.yml")
-        }
-    }
+    private var storageFile: File = File(plugin.dataFolder, "sizes.yml")
 
     fun load() {
+        // Ensure default configs exist
+        plugin.saveDefaultConfig()
         plugin.reloadConfig()
+
+        val messagesFile = File(plugin.dataFolder, "messages.yml")
+        if (!messagesFile.exists()) {
+            try {
+                plugin.saveResource("messages.yml", false)
+            } catch (e: Exception) {
+                plugin.logger.warning("Konnte messages.yml nicht aus Ressourcen entpacken: ${e.message}")
+            }
+        }
+
         val config = plugin.config
 
         enabled = config.getBoolean("enabled", true)
@@ -57,30 +99,107 @@ class SizeManager(private val plugin: SizePlugin) {
         maxScale = config.getDouble("max-scale", 2.5)
         serverScale = config.getDouble("server-scale", 1.0)
         forceServerScale = config.getBoolean("force-server-scale", false)
-        persistPlayerSize = config.getBoolean("persist-player-size", true)
+        persistPlayerSize = config.getBoolean("storage.persist", config.getBoolean("persist-player-size", true))
 
+        // Storage path
+        val customPath = config.getString("storage.custom-file-path", "")?.trim() ?: ""
+        storageFile = when {
+            customPath.isNotEmpty() -> File(customPath)
+            File("/opt/nimbus/shared/sizes").exists() -> File("/opt/nimbus/shared/sizes/sizes.yml")
+            else -> File(plugin.dataFolder, "sizes.yml")
+        }
+
+        // GUI Config
+        val rawGuiSize = config.getInt("gui.size", 27)
+        guiSize = when {
+            rawGuiSize in listOf(9, 18, 27, 36, 45, 54) -> rawGuiSize
+            else -> 27
+        }
+        guiFillerEnabled = config.getBoolean("gui.filler.enabled", true)
+        guiFillerMaterial = Material.matchMaterial(config.getString("gui.filler.material", "GRAY_STAINED_GLASS_PANE") ?: "")
+            ?: Material.GRAY_STAINED_GLASS_PANE
+
+        guiInfoEnabled = config.getBoolean("gui.info-item.enabled", true)
+        guiInfoSlot = config.getInt("gui.info-item.slot", 4)
+        guiInfoMaterial = Material.matchMaterial(config.getString("gui.info-item.material", "COMPASS") ?: "")
+            ?: Material.COMPASS
+
+        guiResetEnabled = config.getBoolean("gui.reset-item.enabled", true)
+        guiResetSlot = config.getInt("gui.reset-item.slot", 26)
+        guiResetMaterial = Material.matchMaterial(config.getString("gui.reset-item.material", "REDSTONE") ?: "")
+            ?: Material.REDSTONE
+
+        // Effects Config
+        soundsEnabled = config.getBoolean("effects.sounds.enabled", true)
+        soundChangeScale = parseSound(config.getString("effects.sounds.change-scale", "ENTITY_PLAYER_LEVELUP"), Sound.ENTITY_PLAYER_LEVELUP)
+        soundGuiOpen = parseSound(config.getString("effects.sounds.gui-open", "BLOCK_ENCHANTMENT_TABLE_USE"), Sound.BLOCK_ENCHANTMENT_TABLE_USE)
+        soundGuiDenied = parseSound(config.getString("effects.sounds.gui-denied", "ENTITY_VILLAGER_NO"), Sound.ENTITY_VILLAGER_NO)
+
+        particlesEnabled = config.getBoolean("effects.particles.enabled", true)
+        particleType = parseParticle(config.getString("effects.particles.particle", "ENCHANT"), Particle.ENCHANT)
+        particleCount = config.getInt("effects.particles.count", 25)
+
+        // Presets
         presets.clear()
         config.getConfigurationSection("presets")?.let { sec ->
             for (key in sec.getKeys(false)) {
                 val scale = sec.getDouble("$key.scale", 1.0)
                 val title = sec.getString("$key.title", key) ?: key
-                val desc = sec.getString("$key.description", "") ?: ""
+                val descList = if (sec.isList("$key.description")) {
+                    sec.getStringList("$key.description")
+                } else {
+                    val single = sec.getString("$key.description", "") ?: ""
+                    if (single.isNotBlank()) listOf(single) else emptyList()
+                }
                 val perm = sec.getString("$key.permission", "crazymine.size.$key") ?: "crazymine.size.$key"
                 val matName = sec.getString("$key.material", "PLAYER_HEAD") ?: "PLAYER_HEAD"
                 val mat = Material.matchMaterial(matName) ?: Material.PLAYER_HEAD
                 val slot = sec.getInt("$key.slot", 13)
-                presets[key.lowercase()] = SizePreset(key, scale, title, desc, perm, mat, slot)
+                presets[key.lowercase()] = SizePreset(key, scale, title, descList, perm, mat, slot)
             }
         }
 
-        messages.clear()
-        config.getConfigurationSection("messages")?.let { sec ->
-            for (key in sec.getKeys(false)) {
-                messages[key] = sec.getString(key, "") ?: ""
-            }
-        }
+        // Messages
+        loadMessages(messagesFile)
 
+        // Load stored sizes
         loadSavedSizes()
+    }
+
+    private fun parseSound(name: String?, fallback: Sound): Sound {
+        if (name == null) return fallback
+        return runCatching { Sound.valueOf(name.uppercase()) }.getOrElse { fallback }
+    }
+
+    private fun parseParticle(name: String?, fallback: Particle): Particle {
+        if (name == null) return fallback
+        return runCatching { Particle.valueOf(name.uppercase()) }.getOrElse { fallback }
+    }
+
+    private fun loadMessages(file: File) {
+        messages.clear()
+        messageLists.clear()
+
+        val yaml = if (file.exists()) {
+            YamlConfiguration.loadConfiguration(file)
+        } else {
+            YamlConfiguration()
+        }
+
+        fun traverse(prefix: String, section: org.bukkit.configuration.ConfigurationSection) {
+            for (key in section.getKeys(false)) {
+                val path = if (prefix.isEmpty()) key else "$prefix.$key"
+                if (section.isConfigurationSection(key)) {
+                    section.getConfigurationSection(key)?.let { traverse(path, it) }
+                } else if (section.isList(key)) {
+                    messageLists[path] = section.getStringList(key)
+                } else {
+                    messages[path] = section.getString(key, "") ?: ""
+                }
+            }
+        }
+
+        traverse("", yaml)
     }
 
     private fun loadSavedSizes() {
@@ -98,8 +217,6 @@ class SizeManager(private val plugin: SizePlugin) {
         }
     }
 
-    // sizes.yml wird von mehreren Servern geteilt: nur den geänderten Spieler in den aktuellen Dateistand mergen,
-    // statt den eigenen (veralteten) Komplettstand zu schreiben.
     private fun saveStoredSize(uuid: UUID) {
         if (!persistPlayerSize) return
         val scale = playerSizes[uuid]
@@ -108,7 +225,11 @@ class SizeManager(private val plugin: SizePlugin) {
                 try {
                     storageFile.parentFile?.mkdirs()
                     val yaml = YamlConfiguration.loadConfiguration(storageFile)
-                    yaml.set(uuid.toString(), scale)
+                    if (scale != null) {
+                        yaml.set(uuid.toString(), scale)
+                    } else {
+                        yaml.set(uuid.toString(), null)
+                    }
                     val tmp = File(storageFile.parentFile, "${storageFile.name}.${plugin.server.port}.tmp")
                     tmp.writeText(yaml.saveToString())
                     Files.move(tmp.toPath(), storageFile.toPath(), StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE)
@@ -144,13 +265,7 @@ class SizeManager(private val plugin: SizePlugin) {
         }
 
         if (playEffects) {
-            val pitch = when {
-                clamped < 0.8 -> 1.7f
-                clamped > 1.2 -> 0.6f
-                else -> 1.0f
-            }
-            player.playSound(player.location, Sound.ENTITY_PLAYER_LEVELUP, 0.6f, pitch)
-            player.world.spawnParticle(Particle.ENCHANT, player.location.add(0.0, clamped * 0.8, 0.0), 25, 0.3, 0.5, 0.3, 0.15)
+            playChangeEffects(player, clamped)
         }
         return true
     }
@@ -193,7 +308,29 @@ class SizeManager(private val plugin: SizePlugin) {
         return player.hasPermission(preset.permission)
     }
 
-    fun format(key: String, vararg replacements: Pair<String, String>): String {
+    fun playChangeEffects(player: Player, targetScale: Double) {
+        if (soundsEnabled) {
+            val pitch = when {
+                targetScale < 0.8 -> 1.7f
+                targetScale > 1.2 -> 0.6f
+                else -> 1.0f
+            }
+            player.playSound(player.location, soundChangeScale, 0.6f, pitch)
+        }
+        if (particlesEnabled) {
+            player.world.spawnParticle(
+                particleType,
+                player.location.add(0.0, targetScale * 0.8, 0.0),
+                particleCount,
+                0.3,
+                0.5,
+                0.3,
+                0.15
+            )
+        }
+    }
+
+    fun getRawMessage(key: String, vararg replacements: Pair<String, String>): String {
         var raw = messages[key] ?: key
         for ((k, v) in replacements) {
             raw = raw.replace("<$k>", v).replace("{$k}", v)
@@ -201,10 +338,26 @@ class SizeManager(private val plugin: SizePlugin) {
         return raw
     }
 
+    fun getRawList(key: String, vararg replacements: Pair<String, String>): List<String> {
+        val list = messageLists[key] ?: return emptyList()
+        return list.map { line ->
+            var formatted = line
+            for ((k, v) in replacements) {
+                formatted = formatted.replace("<$k>", v).replace("{$k}", v)
+            }
+            formatted
+        }
+    }
+
     fun component(key: String, vararg replacements: Pair<String, String>): Component {
         val prefix = messages["prefix"] ?: ""
-        val body = format(key, *replacements)
+        val body = getRawMessage(key, *replacements)
         return mm.deserialize(prefix + body)
+    }
+
+    fun componentNoPrefix(key: String, vararg replacements: Pair<String, String>): Component {
+        val body = getRawMessage(key, *replacements)
+        return mm.deserialize(body)
     }
 
     fun send(sender: CommandSender, key: String, vararg replacements: Pair<String, String>) {

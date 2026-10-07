@@ -3,7 +3,8 @@ version: 1.0.0
 main: eu.crazymine.size.SizePlugin
 api-version: '1.21'
 author: CrazyMine
-description: Spielergröße (Scale Attribute) per GUI oder Command einstellen
+website: https://crazymine.de
+description: Spielergröße (Scale Attribute) per interaktivem GUI oder Command anpassen
 commands:
   size:
     description: Ändere deine Spielergröße
@@ -15,25 +16,28 @@ permissions:
     description: Erlaubt das Öffnen des Größen-Menüs und /size
     default: true
   crazymine.size.small:
-    description: Erlaubt kleine Größe
+    description: Erlaubt kleine Größe (Preset klein)
     default: op
   crazymine.size.normal:
-    description: Erlaubt normale Größe
+    description: Erlaubt normale Größe (Preset normal)
     default: true
   crazymine.size.large:
-    description: Erlaubt etwas größere und große Größe
+    description: Erlaubt größere Größe (Presets etwasgross und gross)
     default: op
   crazymine.size.custom:
     description: Erlaubt freie Zahlenwerte als Größe
+    default: op
+  crazymine.size.bypass:
+    description: Erlaubt das Umgehen der Min-/Max-Größenlimits
     default: op
   crazymine.size.others:
     description: Erlaubt das Ändern der Größe anderer Spieler
     default: op
   crazymine.size.server:
-    description: Erlaubt das Ändern der Server-Größe
+    description: Erlaubt das Ändern der Standard-Server-Größe
     default: op
   crazymine.size.admin:
-    description: Voller Adminzugriff und Reload
+    description: Voller Adminzugriff und Reload-Befehl
     default: op
   crazymine.size.*:
     description: Alle Rechte für CrazyMineSize
@@ -43,6 +47,7 @@ permissions:
       crazymine.size.normal: true
       crazymine.size.large: true
       crazymine.size.custom: true
+      crazymine.size.bypass: true
       crazymine.size.others: true
       crazymine.size.server: true
       crazymine.size.admin: true

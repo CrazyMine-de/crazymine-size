@@ -29,11 +29,16 @@ class SizeCommand(
         }
 
         when (args[0].lowercase()) {
+            "help", "hilfe", "?" -> {
+                sendHelp(sender)
+                return true
+            }
+
             "gui", "menu" -> {
                 if (sender is Player) {
                     gui.open(sender)
                 } else {
-                    sender.sendMessage("Nur für Spieler im Spiel.")
+                    manager.send(sender, "only-players")
                 }
                 return true
             }
@@ -54,7 +59,7 @@ class SizeCommand(
                     return true
                 }
                 if (args.size < 2) {
-                    sender.sendMessage(manager.mm.deserialize("<red>Verwendung: /size server <klein|normal|gross|reset|wert></red>"))
+                    manager.send(sender, "usage-server")
                     return true
                 }
                 val targetScale = parseScale(sender, args[1]) ?: return true
@@ -68,7 +73,7 @@ class SizeCommand(
                     manager.resetScale(sender)
                     manager.send(sender, "size-reset")
                 } else {
-                    sender.sendMessage("Nur für Spieler.")
+                    manager.send(sender, "only-players")
                 }
                 return true
             }
@@ -118,7 +123,7 @@ class SizeCommand(
         // Try parsing float/double number
         val num = lower.toDoubleOrNull()
         if (num == null) {
-            sender.sendMessage(manager.mm.deserialize("<red>Ungültige Eingabe: '$input'. Nutze klein, normal, etwasgross, gross oder eine Zahl (z.B. 0.5, 1.2).</red>"))
+            manager.send(sender, "invalid-input", "input" to input)
             return null
         }
 
@@ -145,17 +150,17 @@ class SizeCommand(
     }
 
     private fun sendHelp(sender: CommandSender) {
-        sender.sendMessage(manager.mm.deserialize("<gradient:#ff7a18:#ffd166><bold>CrazyMine Size Hilfe</bold></gradient>"))
-        sender.sendMessage(manager.mm.deserialize("<yellow>/size</yellow> <gray>- Öffnet das Größen-Menü</gray>"))
-        sender.sendMessage(manager.mm.deserialize("<yellow>/size <klein|normal|etwasgross|gross|reset></yellow> <gray>- Setzt die Größe</gray>"))
+        sender.sendMessage(manager.componentNoPrefix("help.header"))
+        sender.sendMessage(manager.componentNoPrefix("help.gui"))
+        sender.sendMessage(manager.componentNoPrefix("help.preset"))
         if (sender.hasPermission("crazymine.size.others") || sender.isOp) {
-            sender.sendMessage(manager.mm.deserialize("<yellow>/size <spieler> <größe></yellow> <gray>- Ändert die Größe eines Spielers</gray>"))
+            sender.sendMessage(manager.componentNoPrefix("help.others"))
         }
         if (sender.hasPermission("crazymine.size.server") || sender.isOp) {
-            sender.sendMessage(manager.mm.deserialize("<yellow>/size server <größe></yellow> <gray>- Ändert die Größe für den gesamten Server</gray>"))
+            sender.sendMessage(manager.componentNoPrefix("help.server"))
         }
         if (sender.hasPermission("crazymine.size.admin") || sender.isOp) {
-            sender.sendMessage(manager.mm.deserialize("<yellow>/size reload</yellow> <gray>- Lädt die Konfiguration neu</gray>"))
+            sender.sendMessage(manager.componentNoPrefix("help.reload"))
         }
     }
 
@@ -163,7 +168,7 @@ class SizeCommand(
         if (!manager.enabled) return emptyList()
 
         if (args.size == 1) {
-            val list = mutableListOf("gui", "reset")
+            val list = mutableListOf("gui", "reset", "help")
             list.addAll(manager.presets.keys)
             if (sender.hasPermission("crazymine.size.server") || sender.isOp) list.add("server")
             if (sender.hasPermission("crazymine.size.admin") || sender.isOp) list.add("reload")

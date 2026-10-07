@@ -1,0 +1,51 @@
+# ==============================================================================
+# CrazyMine Size — Nachrichtenkonfiguration
+# Unterstützt MiniMessage (z. B. <gradient:#ff7a18:#ffd166>Text</gradient>, <gray>, <bold>)
+# ==============================================================================
+
+prefix: "<gradient:#ff7a18:#ffd166><bold>CrazyMine</bold></gradient> <dark_gray>»</dark_gray> "
+
+# Befehls-Rückmeldungen
+size-set: "<gray>Deine Größe wurde auf <yellow><size>x</yellow> gesetzt!</gray>"
+size-reset: "<gray>Deine Größe wurde auf <green>Normal (1.0x)</green> zurückgesetzt.</gray>"
+size-target: "<gray>Die Größe von <yellow><player></yellow> wurde auf <yellow><size>x</yellow> gesetzt.</gray>"
+server-size-set: "<green>Die Server-Größe wurde für alle Spieler auf <yellow><size>x</yellow> gesetzt!</green>"
+
+# Fehlermeldungen & Berechtigungen
+no-permission: "<red>Dazu hast du keine Berechtigung!</red>"
+invalid-size: "<red>Ungültige Größe! Erlaubt: zwischen <yellow><min>x</yellow> und <yellow><max>x</yellow>.</red>"
+invalid-input: "<red>Ungültige Eingabe: '<input>'. Nutze ein Preset (z.B. normal) oder eine Zahl (z.B. 0.5, 1.2).</red>"
+player-not-found: "<red>Spieler wurde nicht gefunden.</red>"
+only-players: "<red>Dieser Befehl kann nur von Spielern ausgeführt werden.</red>"
+usage-server: "<red>Verwendung: /size server <preset|reset|wert></red>"
+reloaded: "<green>Konfiguration und Nachrichten erfolgreich neu geladen!</green>"
+disabled: "<red>Das Größen-System ist auf diesem Server deaktiviert.</red>"
+
+# Hilfe (/size hilfe / ungültige Konsole)
+help:
+  header: "<gradient:#ff7a18:#ffd166><bold>CrazyMine Size Hilfe</bold></gradient>"
+  gui: "<yellow>/size</yellow> <gray>- Öffnet das interaktive Größen-Menü</gray>"
+  preset: "<yellow>/size <preset|zahl|reset></yellow> <gray>- Ändert deine Größe</gray>"
+  others: "<yellow>/size <spieler> <größe></yellow> <gray>- Ändert die Größe eines anderen Spielers</gray>"
+  server: "<yellow>/size server <größe></yellow> <gray>- Ändert die Standard-Größe des gesamten Servers</gray>"
+  reload: "<yellow>/size reload</yellow> <gray>- Lädt Konfiguration und Nachrichten neu</gray>"
+
+# Grafische Benutzeroberfläche (GUI)
+gui:
+  title: "<gradient:#ff7a18:#ffd166>Größe wählen</gradient>"
+  current-info:
+    name: "<gradient:#ff7a18:#ffd166><bold>Aktuelle Größe</bold></gradient>"
+    lore:
+      - "<gray>Deine Größe:</gray> <yellow><size>x</yellow>"
+      - ""
+      - "<dark_gray>Wähle unten eine neue Größe aus</dark_gray>"
+  status:
+    selected: "<green>✔ Aktuell ausgewählt</green>"
+    can-select: "<yellow>Klicken zum Auswählen</yellow>"
+    no-permission: "<red>✖ Keine Berechtigung</red>"
+  reset-item:
+    name: "<red><bold>Zurücksetzen</bold></red>"
+    lore:
+      - "<gray>Setzt deine Größe auf <green>Normal (1.0x)</green> zurück.</gray>"
+      - ""
+      - "<yellow>Klicken zum Zurücksetzen</yellow>"

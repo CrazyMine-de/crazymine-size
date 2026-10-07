@@ -3,7 +3,6 @@ package eu.crazymine.size
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.TextDecoration
 import org.bukkit.Material
-import org.bukkit.Sound
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
@@ -13,6 +12,7 @@ import org.bukkit.inventory.Inventory
 import org.bukkit.inventory.InventoryHolder
 import org.bukkit.inventory.ItemStack
 import java.util.Locale
+import kotlin.math.abs
 
 class SizeGui(private val plugin: SizePlugin, private val manager: SizeManager) : Listener {
 
@@ -23,78 +23,95 @@ class SizeGui(private val plugin: SizePlugin, private val manager: SizeManager) 
 
     fun open(player: Player) {
         val holder = GuiHolder()
-        val title = manager.mm.deserialize("<gradient:#ff7a18:#ffd166>Größe wählen</gradient>")
-        val inv = plugin.server.createInventory(holder, 27, title)
+        val titleText = manager.getRawMessage("gui.title")
+        val titleComponent = manager.mm.deserialize(titleText)
+        val inv = plugin.server.createInventory(holder, manager.guiSize, titleComponent)
         holder.inv = inv
 
         val currentScale = manager.getScale(player)
+        val formattedScale = String.format(Locale.US, "%.2f", currentScale)
 
         // Filler
-        val filler = ItemStack(Material.GRAY_STAINED_GLASS_PANE).apply {
-            editMeta { meta -> meta.displayName(Component.empty()) }
-        }
-        for (i in 0 until 27) {
-            inv.setItem(i, filler)
-        }
-
-        // Info Skull / Compass in Slot 4
-        val infoItem = ItemStack(Material.COMPASS).apply {
-            editMeta { meta ->
-                meta.displayName(manager.mm.deserialize("<gradient:#ff7a18:#ffd166><bold>Aktuelle Größe</bold></gradient>").decoration(TextDecoration.ITALIC, false))
-                val lore = listOf(
-                    manager.mm.deserialize("<gray>Deine Größe:</gray> <yellow>${String.format(Locale.US, "%.2f", currentScale)}x</yellow>"),
-                    Component.empty(),
-                    manager.mm.deserialize("<dark_gray>Wähle unten eine Option aus</dark_gray>")
-                ).map { it.decoration(TextDecoration.ITALIC, false) }
-                meta.lore(lore)
+        if (manager.guiFillerEnabled && manager.guiFillerMaterial != Material.AIR) {
+            val filler = ItemStack(manager.guiFillerMaterial).apply {
+                editMeta { meta -> meta.displayName(Component.empty()) }
+            }
+            for (i in 0 until manager.guiSize) {
+                inv.setItem(i, filler)
             }
         }
-        inv.setItem(4, infoItem)
+
+        // Info Skull / Compass Item
+        if (manager.guiInfoEnabled && manager.guiInfoSlot in 0 until manager.guiSize) {
+            val infoItem = ItemStack(manager.guiInfoMaterial).apply {
+                editMeta { meta ->
+                    val nameStr = manager.getRawMessage("gui.current-info.name", "size" to formattedScale)
+                    meta.displayName(manager.mm.deserialize(nameStr).decoration(TextDecoration.ITALIC, false))
+
+                    val rawLore = manager.getRawList("gui.current-info.lore", "size" to formattedScale)
+                    val lore = rawLore.map { line ->
+                        manager.mm.deserialize(line).decoration(TextDecoration.ITALIC, false)
+                    }
+                    meta.lore(lore)
+                }
+            }
+            inv.setItem(manager.guiInfoSlot, infoItem)
+        }
 
         // Presets
         for (preset in manager.presets.values) {
-            if (preset.slot !in 0 until 27) continue
+            if (preset.slot !in 0 until manager.guiSize) continue
             val allowed = manager.canUsePreset(player, preset)
-            val selected = Math.abs(preset.scale - currentScale) < 0.05
+            val selected = abs(preset.scale - currentScale) < 0.05
+            val presetScaleFormatted = String.format(Locale.US, "%.2f", preset.scale)
 
             val item = ItemStack(preset.material).apply {
                 editMeta { meta ->
                     meta.displayName(manager.mm.deserialize(preset.title).decoration(TextDecoration.ITALIC, false))
                     val lore = mutableListOf<Component>()
-                    if (preset.description.isNotBlank()) {
-                        lore.add(manager.mm.deserialize(preset.description))
+                    for (desc in preset.description) {
+                        lore.add(manager.mm.deserialize(desc))
                     }
                     lore.add(Component.empty())
-                    if (selected) {
-                        lore.add(manager.mm.deserialize("<green>✔ Aktuell ausgewählt</green>"))
-                        meta.setEnchantmentGlintOverride(true)
-                    } else if (allowed) {
-                        lore.add(manager.mm.deserialize("<yellow>Klicken zum Auswählen</yellow>"))
-                    } else {
-                        lore.add(manager.mm.deserialize("<red>✖ Keine Berechtigung</red>"))
+
+                    val statusMsg = when {
+                        selected -> manager.getRawMessage("gui.status.selected", "size" to presetScaleFormatted)
+                        allowed -> manager.getRawMessage("gui.status.can-select", "size" to presetScaleFormatted)
+                        else -> manager.getRawMessage("gui.status.no-permission", "size" to presetScaleFormatted)
                     }
+                    lore.add(manager.mm.deserialize(statusMsg))
+
+                    if (selected) {
+                        meta.setEnchantmentGlintOverride(true)
+                    }
+
                     meta.lore(lore.map { it.decoration(TextDecoration.ITALIC, false) })
                 }
             }
             inv.setItem(preset.slot, item)
         }
 
-        // Reset in Slot 26
-        val resetItem = ItemStack(Material.REDSTONE).apply {
-            editMeta { meta ->
-                meta.displayName(manager.mm.deserialize("<red><bold>Zurücksetzen</bold></red>").decoration(TextDecoration.ITALIC, false))
-                val lore = listOf(
-                    manager.mm.deserialize("<gray>Setzt deine Größe auf <green>Normal (1.0x)</green> zurück.</gray>"),
-                    Component.empty(),
-                    manager.mm.deserialize("<yellow>Klicken zum Zurücksetzen</yellow>")
-                ).map { it.decoration(TextDecoration.ITALIC, false) }
-                meta.lore(lore)
+        // Reset Item
+        if (manager.guiResetEnabled && manager.guiResetSlot in 0 until manager.guiSize) {
+            val resetItem = ItemStack(manager.guiResetMaterial).apply {
+                editMeta { meta ->
+                    val resetTitle = manager.getRawMessage("gui.reset-item.name")
+                    meta.displayName(manager.mm.deserialize(resetTitle).decoration(TextDecoration.ITALIC, false))
+
+                    val rawLore = manager.getRawList("gui.reset-item.lore")
+                    val lore = rawLore.map { line ->
+                        manager.mm.deserialize(line).decoration(TextDecoration.ITALIC, false)
+                    }
+                    meta.lore(lore)
+                }
             }
+            inv.setItem(manager.guiResetSlot, resetItem)
         }
-        inv.setItem(26, resetItem)
 
         player.openInventory(inv)
-        player.playSound(player.location, Sound.BLOCK_ENCHANTMENT_TABLE_USE, 0.6f, 1.3f)
+        if (manager.soundsEnabled) {
+            player.playSound(player.location, manager.soundGuiOpen, 0.6f, 1.3f)
+        }
     }
 
     @EventHandler
@@ -107,19 +124,21 @@ class SizeGui(private val plugin: SizePlugin, private val manager: SizeManager) 
 
         val slot = event.slot
 
-        // Reset
-        if (slot == 26) {
+        // Reset click
+        if (manager.guiResetEnabled && slot == manager.guiResetSlot) {
             manager.resetScale(player)
             manager.send(player, "size-reset")
             player.closeInventory()
             return
         }
 
-        // Check presets
+        // Presets click
         val clickedPreset = manager.presets.values.firstOrNull { it.slot == slot } ?: return
         if (!manager.canUsePreset(player, clickedPreset)) {
             manager.send(player, "no-permission")
-            player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 0.7f, 1.0f)
+            if (manager.soundsEnabled) {
+                player.playSound(player.location, manager.soundGuiDenied, 0.7f, 1.0f)
+            }
             return
         }
 
